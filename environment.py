@@ -16,7 +16,7 @@ import numpy as np
 #####################################################################################################################
 class Environment:
     def __init__(self, env_name, sticky_action_prob = 0.1, difficulty_ramping = True, random_seed = None):
-        env_module = import_module('minatar.environments.'+env_name)
+        env_module = import_module('environments.'+env_name)
         self.random = np.random.RandomState(random_seed)
         self.env_name = env_name
         self.env = env_module.Env(ramping = difficulty_ramping, random_state = self.random)
@@ -41,6 +41,9 @@ class Environment:
     def reset(self):
         return self.env.reset()
 
+    def random_reset(self):
+        return self.env.random_state()
+
     # Wrapper for env.state_shape
     def state_shape(self):
         return self.env.state_shape()
@@ -52,6 +55,10 @@ class Environment:
     # Name of the MinAtar game associated with this environment
     def game_name(self):
         return self.env_name
+    
+    # get game instance for planning
+    def get_game(self):
+        return self.env
 
     # Wrapper for env.minimal_action_set
     def minimal_action_set(self):
