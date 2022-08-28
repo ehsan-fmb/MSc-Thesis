@@ -3,7 +3,9 @@ import pickle
 import torch
 import numpy as np
 import re
-import sys
+
+
+# success settings: -b 128 -e 100 -s 0.001 filters:8 last layer units: 32
 
 dSiLU = lambda x: torch.sigmoid(x)*(1+x*(1-torch.sigmoid(x)))
 SiLU = lambda x: x*torch.sigmoid(x)
