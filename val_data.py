@@ -4,10 +4,10 @@ import pickle
 from copy import deepcopy
 import math
 import time
+import numpy as np
 
 
-
-def expected_life_a(game,steps):
+def expected_life(game,steps):
 
     if game.terminal:
         return math.pow(5,steps),math.pow(5,steps)
@@ -22,31 +22,31 @@ def expected_life_a(game,steps):
     if state[max(0, game.player_x-1),game.player_y,1]==0:
         node=deepcopy(game)
         node.act(1)
-        d,t=expected_life_a(node,steps-1)
+        d,t=expected_life(node,steps-1)
         death=death+d
         total=total+t
     if state[min(9, game.player_x+1),game.player_y,1]==0:
         node=deepcopy(game)
         node.act(3)
-        d,t=expected_life_a(node,steps-1)
+        d,t=expected_life(node,steps-1)
         death=death+d
         total=total+t
     if state[game.player_x,max(1,game.player_y-1),1]==0:
         node=deepcopy(game)
         node.act(2)
-        d,t=expected_life_a(node,steps-1)
+        d,t=expected_life(node,steps-1)
         death=death+d
         total=total+t
     if state[game.player_x,min(8,game.player_y+1),1]==0:
         node=deepcopy(game)
         node.act(4)
-        d,t=expected_life_a(node,steps-1)
+        d,t=expected_life(node,steps-1)
         death=death+d
         total=total+t
     
     node=deepcopy(game)
     node.act(0)
-    d,t=expected_life_a(node,steps-1)
+    d,t=expected_life(node,steps-1)
     death=death+d
     total=total+t
     
@@ -55,36 +55,30 @@ def expected_life_a(game,steps):
         
 
 
-def generate_dataset(name,size,steps):
+def generate_dataset(name,size,steps,trials):
     dataset=[]
     env=Environment(name)
-    # determine how we want to calculate the expectation of life for different games
-    if name=="asterix":
-        func=expected_life_a
     
     for i in range(int(size)):
         env.random_reset()
         game=env.get_game()
-        death,total=func(game,int(steps))
-        label=(total-death)/total
-        #validating
-        # print("label: "+str(label))
-        # print("move speed: "+str(game.move_speed))
-        # print("spwan speed: "+str(game.spawn_speed))
-        # s=game.state()
-        # for i in range(2):
-        #     print(s[:,:,i])
-        #     print("*"*40)
-        dataset.append([game.state(),game.ramp_index,label])
+        labels=[]
+        for _ in range(trials):
+            game.random=np.random.RandomState(np.random.randint(0,100000))
+            death,total=expected_life(game,steps)
+            if total>death:
+                labels.append((total-death)/total)
+        
+        if len(labels)==6:
+            label=min(labels)
+            dataset.append([game.state(),game.ramp_index,label])
+        
+        if (i+1)%1000==0:
+            print(i+1)
 
-    with open("dataset/"+name+"_"+size+"_"+steps, "wb") as fp:
+    with open("dataset/"+name+"_"+size+"_"+str(steps)+"_"+str(trials), "wb") as fp:
         pickle.dump(dataset, fp)
 
-
-def load_dataset(address):
-    with open(address, "rb") as fp:
-        b = pickle.load(fp)
-    return b
 
 
 if __name__ == '__main__':
@@ -92,5 +86,6 @@ if __name__ == '__main__':
     parser.add_argument('-g','--game',required=True)
     parser.add_argument('-s','--size',required=True)
     parser.add_argument('-l','--length',required=True)
+    parser.add_argument('-t','--trial',required=True)
     args = parser.parse_args()
-    generate_dataset(args.game,args.size,args.length)    
+    generate_dataset(args.game,args.size,int(args.length),int(args.trial))    

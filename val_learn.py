@@ -1,7 +1,10 @@
 import argparse
+from ast import arg
 import pickle
+#from turtle import color
 import torch
 import numpy as np
+#import matplotlib.pyplot as plt
 import re
 
 
@@ -50,6 +53,20 @@ class Network(torch.nn.Module):
 def get_state(s):
     return (torch.tensor(s, device=device).permute(2, 0, 1)).float()
 
+def show_dataset(address,name):
+    with open(address, "rb") as fp:
+        datalist = pickle.load(fp)
+    
+    seeds=[0,0,0,0,0,0,0,0,0,0,0]
+    for data in datalist:
+        seeds[int(data[2]/0.1)]+=1
+    
+    #plt.plot(seeds,color="magenta")
+    #plt.savefig("figures/"+name+".png")
+    #plt.show()
+
+
+
 def load_dataset(address):
     with open(address, "rb") as fp:
         datalist = pickle.load(fp)
@@ -94,5 +111,6 @@ if __name__ == '__main__':
     parser.add_argument('-c','--channels',required=True)
     parser.add_argument('-s','--ssize',required=True)
     args = parser.parse_args()
+    #show_dataset("dataset/"+args.name,args.name)
     dataset=load_dataset("dataset/"+args.name)
     train(dataset,int(args.bsize),int(args.epochs),int(args.channels),float(args.ssize),re.split('_',args.name)[0])

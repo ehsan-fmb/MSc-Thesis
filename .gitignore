@@ -1,2 +1,5 @@
-venv
+.venv
 *cpython*
+test.py
+job.sh
+*.out

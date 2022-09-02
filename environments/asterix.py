@@ -158,11 +158,15 @@ class Env:
         number_of_entities=np.random.randint(1,9)
         for _ in range(number_of_entities):
             self._spawn_entity()
+
         self.ramp_index=np.random.randint(0,10)
+        
         self.move_speed = max(1,init_move_interval-self.ramp_index//2)
-        self.move_timer = self.move_speed
+        self.move_timer = np.random.randint(1,self.move_speed+1)
+        
         self.spawn_speed = max(1,init_spawn_speed-self.ramp_index)
-        self.spawn_timer = self.spawn_speed
+        self.spawn_timer = np.random.randint(1,self.spawn_speed+1)
+        
         self.terminal=False
 
     # Dimensionality of the game-state (10x10xn)
