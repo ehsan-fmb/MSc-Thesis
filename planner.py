@@ -1,7 +1,6 @@
 import time
 from state import State
 from copy import deepcopy
-import multiprocessing
 import random
 import torch
 import numpy as np
@@ -9,29 +8,16 @@ import numpy as np
 max_path_length=8
 val_threshold=0.7
 
-#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-device="cpu"
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def main(root, budget,val_network):
     
     expansion(root,val_network)
-    
-    #processes=[]
-    # manager = multiprocessing.Manager()
-    # returns= manager.dict()
     returns={}
-
 
     for i in range(len(root.children)):
         random_policy(root.children[i],budget,returns,val_network)
-        # p=multiprocessing.Process(target=random_policy,args=(root.children[i],budget,returns,val_network))
-        # p.start()
-        # processes.append(p)
-    
-    # for process in processes:
-    #     process.join()
-    
     
     return selection(returns,root)
 

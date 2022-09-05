@@ -1,6 +1,5 @@
 from environment import Environment
 from state import State
-import multiprocessing
 import planner
 import time
 import numpy as np
@@ -21,8 +20,8 @@ def run(budget,game,sticky_action):
     if game=="asterix":
         in_channels=3
     val_network=Network(in_channels)
-    #network.cuda()
     val_network.load_state_dict(torch.load("value network/asterix.pt"))
+    #network.cuda()
     
     while not done:
         #env.display_state()
