@@ -1,3 +1,4 @@
+from distutils.log import info
 import math
 import time
 from state import State
@@ -25,13 +26,17 @@ def main(root,budget):
             # no children condition should be checked!
             if len(cur.children)>0:
                 cur=cur.children[0]
+            
             delta=simulation(cur)
             simulations+=1
         backpropagation(root,cur,delta)
 
 
     #print(simulations)
-    return best_child(root).action_index,False
+    if len(root.children)>0:
+        return best_child(root).action_index,False
+    else:
+        return 0,False
 
 
 def backpropagation(root,cur,delta):
@@ -44,9 +49,18 @@ def backpropagation(root,cur,delta):
 def expansion(parent):
     for i in range(len(parent.game.action_map)):
         child = State(deepcopy(parent.game),parent,i)
-        r, terminal= child.game.act(i)
+        
+        # for asterix
+        # r, terminal,_= child.game.act(i)
+        # child.q = child.q+r
+        # if not terminal and not (child.game.player_x == parent.game.player_x and child.game.player_y == parent.game.player_y and i != 0):
+        #     parent.children.append(child)
+
+        
+        # for freeway
+        r, _,terminal= child.game.act(i)
         child.q = child.q+r
-        if not terminal and not (child.game.player_x == parent.game.player_x and child.game.player_y == parent.game.player_y and i != 0):
+        if not terminal:
             parent.children.append(child)
 
 def selection(root):
@@ -72,9 +86,10 @@ def simulation(cur):
     path_length=0
     state=deepcopy(cur.game)
     delta=0
-    while (not done) and (path_length<=max_simulation_length):
+    while (not done) and (path_length<=max_simulation_length) and (not info):
         action=random.randint(0,len(state.action_map)-1)
         path_length+=1
-        r,done=state.act(action)
+        
+        r,done,info=state.act(action)
         delta+=r
     return delta

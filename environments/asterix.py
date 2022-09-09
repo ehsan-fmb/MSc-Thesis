@@ -44,8 +44,9 @@ class Env:
     # Update environment according to agent action
     def act(self, a):
         r = 0
+        info=None
         if(self.terminal):
-            return r, self.terminal
+            return r, self.terminal,info
             
         a = self.action_map[a]
 
@@ -105,7 +106,7 @@ class Env:
                     self.spawn_speed-=1
                 self.ramp_index+=1
                 self.ramp_timer=ramp_interval
-        return r, self.terminal
+        return r, self.terminal,info
 
     # Spawn a new enemy or treasure at a random location with random direction (if all rows are filled do nothing)
     def _spawn_entity(self):

@@ -38,7 +38,7 @@ class Env:
             'speed4':5,
             'speed5':6,
         }
-        self.action_map = ['n','l','u','r','d','f']
+        self.action_map = ['n','u','d']
         if random_state is None:
             self.random = np.random.RandomState()
         else:
@@ -47,9 +47,10 @@ class Env:
 
     # Update environment according to agent action
     def act(self, a):
+        crash=None
         r = 0
         if(self.terminal):
-            return r, self.terminal
+            return r, self.terminal,crash
             
         a = self.action_map[a]
 
@@ -70,6 +71,7 @@ class Env:
         for car in self.cars:
             if(car[0:2]==[4,self.pos]):
                 self.pos = 9
+                crash=True
             if(car[2]==0):
                 car[2]=abs(car[3])
                 car[0]+=1 if car[3]>0 else -1
@@ -79,6 +81,7 @@ class Env:
                     car[0]=0
                 if(car[0:2]==[4,self.pos]):
                     self.pos = 9
+                    crash=True
             else:
                 car[2]-=1
 
@@ -87,7 +90,8 @@ class Env:
         self.terminate_timer-=1
         if(self.terminate_timer<0):
             self.terminal = True
-        return r, self.terminal
+        
+        return r, self.terminal,crash
 
     # Query the current level of the difficulty ramp, difficulty does not ramp in this game, so return None
     def difficulty_ramp(self):
@@ -118,14 +122,17 @@ class Env:
         return state
 
     # Randomize car speeds and directions, also reset their position if initialize=True
-    def _randomize_cars(self, initialize=False):
+    def _randomize_cars(self, initialize=False,learning=False):
         speeds = self.random.randint(1,6,8)
         directions = self.random.choice([-1,1],8)
         speeds*=directions
         if(initialize):
             self.cars = []
             for i in range(8):
-                self.cars+=[[0,i+1,abs(speeds[i]),speeds[i]]]
+                if not learning:
+                    self.cars+=[[0,i+1,abs(speeds[i]),speeds[i]]]
+                else:
+                    self.cars+=[[np.random.randint(0,10),i+1,abs(speeds[i]),speeds[i]]]
         else:
             for i in range(8):
                 self.cars[i][2:4]=[abs(speeds[i]),speeds[i]]
@@ -135,6 +142,18 @@ class Env:
         self._randomize_cars(initialize=True)
         self.pos = 9
         self.move_timer = player_speed
+        self.terminate_timer = time_limit
+        self.terminal = False
+    
+    # generate random state
+    # ramp_index be used as an input to the network
+    def random_state(self):
+        
+        self._randomize_cars(initialize=True,learning=True)
+        self.pos = np.random.randint(1,10)
+        
+        self.move_timer = np.random.randint(0,player_speed+1)
+
         self.terminate_timer = time_limit
         self.terminal = False
 

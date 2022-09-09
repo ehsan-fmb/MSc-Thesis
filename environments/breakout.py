@@ -24,7 +24,7 @@ class Env:
             'trail':2,
             'brick':3,
         }
-        self.action_map = ['n','l','u','r','d','f']
+        self.action_map = ['n','l','r']
         if random_state is None:
             self.random = np.random.RandomState()
         else:
@@ -34,8 +34,9 @@ class Env:
     # Update environment according to agent action
     def act(self, a):
         r = 0
+        info=None
         if(self.terminal):
-            return r, self.terminal
+            return r, self.terminal,info
             
         a = self.action_map[a]
 
@@ -96,7 +97,7 @@ class Env:
 
         self.ball_x = new_x
         self.ball_y = new_y
-        return r, self.terminal
+        return r, self.terminal,info
 
     # Query the current level of the difficulty ramp, difficulty does not ramp in this game, so return None
     def difficulty_ramp(self):
@@ -123,6 +124,23 @@ class Env:
         self.last_x = self.ball_x
         self.last_y = self.ball_y
         self.terminal = False
+
+    # generate random state
+    # ramp_index be used as an input to the network
+    def random_state(self):
+        
+        self.brick_map = np.zeros((10,10))
+        max_height=np.random.randint(1,5)
+        self.brick_map[1:max_height,:] = 1
+        self.ball_dir=np.random.randint(0,4)
+        self.ball_x=np.random.randint(0,10)
+        self.ball_y = np.random.randint(max_height+1,9)
+        self.pos = np.random.randint(0,10)
+        self.strike = False
+        self.last_x = self.ball_x
+        self.last_y = self.ball_y
+        self.terminal = False
+        self.act(0)
 
     # Dimensionality of the game-state (10x10xn)
     def state_shape(self):
