@@ -10,9 +10,14 @@ import numpy as np
 # subgoal_thresh=0.7
 
 # for freeway
-max_path_length=10
-subgoal_thresh=0
-child_thresh=0.5
+# max_path_length=10
+# subgoal_thresh=-1
+# child_thresh=0.5
+
+# for breakout
+max_path_length=8
+subgoal_thresh=-1
+score_estimation_length=8
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -42,20 +47,41 @@ def selection(returns,root):
         #     if child.q>max_val or (max_val==child.q and random.random()>0.5):
         #         max_val=child.q
         #         pos=child.action_index
+        
+
+        # for breakout
+        for i in range(len(root.children)):
+            child=root.children[i]
+            if child.q>max_val or (max_val==child.q and random.random()>0.5):
+                max_val=child.q
+                pos=child.action_index
+                index=i
+        
+        if len(root.children)>0:
+            if root.children[index].q<0.2:
+                if root.game.ball_x>root.game.pos:
+                    pos=2
+                if root.game.ball_x<root.game.pos:
+                    pos=1
+                # if root.children[index].action_index!=pos:
+                #     print("man")
+                # else:
+                #     print("doos")
+                
 
         # tweaking for freeway
-        pos=2
-        for child in root.children:
-            if child.action_index==0 and child.q>child_thresh:
-                pos=0
-        for child in root.children:    
-            if child.action_index==1 and child.q>child_thresh:
-                pos=1
+        # pos=2
+        # for child in root.children:
+        #     if child.action_index==0 and child.q>child_thresh:
+        #         pos=0
+        # for child in root.children:    
+        #     if child.action_index==1 and child.q>child_thresh:
+        #         pos=1
         
-        # for asterix; deadends are already addressed in freeway.
-        # if len(root.children)==0:
-        #     # deadend happens
-        #     return 0,False
+        # for asterix and breakout; deadends are already addressed in freeway.
+        if len(root.children)==0:
+            # deadend happens
+            return 0,False
         
         return pos,False
 
@@ -77,13 +103,19 @@ def expansion(parent,network):
         #     input=np.dstack((board,ramping))
         
         # for freeway
-        _,_,terminal= child.game.act(i)
-        if not terminal:
+        # _,_,terminal= child.game.act(i)
+        # if not terminal:
+        #     parent.children.append(child)
+        #     input=child.game.state()
+        
+        # for breakout
+        _, terminal,_= child.game.act(i)
+        if not terminal and not (child.game.pos == parent.game.pos and i != 0):
             parent.children.append(child)
             input=child.game.state()
-        
-        with torch.no_grad():
-            child.q=network(get_state(input))
+
+            with torch.no_grad():
+                child.q=network(get_state(input))
 
 
 
@@ -94,8 +126,13 @@ def option_running(env,option):
     for action in option:
         game=deepcopy(env.get_game())
         _,done_sim,info=game.act(action)
-        if not done_sim and not info:
-            r,done=env.act(action)
+        
+        # for asterix and freeway
+        # if not done_sim and not info:
+        
+        # for breakout
+        if not done:
+            r,done,_=env.act(action)
             score=score+r
         else:
             return score,done
@@ -105,10 +142,19 @@ def option_running(env,option):
     return score,done
 
 
+def breakout_estimation(game):
+    score=0
+    for _ in range(score_estimation_length):
+        r,terminal,_=game.act(0)
+        if terminal:
+            break
+        score=score+r
+    return score
+
 def random_policy(node, budget,returns,network):
     
     start = time.time()
-    max_subgoal_val=0
+    max_subgoal_val=-1
     subgoal=None
     trajectories=0
     
@@ -131,20 +177,27 @@ def random_policy(node, budget,returns,network):
             #r,terminal,_=root.act(action)
 
             # for freeway
-            r,_,terminal=root.act(action)
+            # r,_,terminal=root.act(action)
+
+            # for breakout
+            _,terminal,info=root.act(action)
             
-            if r!=0:
+            # for asterix and freeway
+            #if r!=0:
+            if info:
                 
                 # for asterix
                 # board=root.state()[:,:,0:2]
                 # ramping=np.ones((board.shape[0],board.shape[1]))*root.ramp_index
                 # input=np.dstack((board,ramping))
+                # with torch.no_grad():
+                #     new_val=network(get_state(input))
 
                 # for freeway
-                input=root.state()
+                # new_val=0
 
-                with torch.no_grad():
-                    new_val=network(get_state(input))
+                # for breakout
+                new_val=breakout_estimation(root)
 
                 if new_val>max_subgoal_val:
                     max_subgoal_val=new_val

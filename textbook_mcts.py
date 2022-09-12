@@ -58,9 +58,15 @@ def expansion(parent):
 
         
         # for freeway
-        r, _,terminal= child.game.act(i)
+        # r, _,terminal= child.game.act(i)
+        # child.q = child.q+r
+        # if not terminal:
+        #     parent.children.append(child)
+
+        # for breakout
+        r, terminal,_= child.game.act(i)
         child.q = child.q+r
-        if not terminal:
+        if not terminal and not (child.game.pos == parent.game.pos and i != 0):
             parent.children.append(child)
 
 def selection(root):
@@ -83,6 +89,7 @@ def best_child(parent):
 
 def simulation(cur):
     done=False
+    info=False
     path_length=0
     state=deepcopy(cur.game)
     delta=0

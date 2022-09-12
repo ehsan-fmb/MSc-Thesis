@@ -12,7 +12,10 @@ import torch
 # in_channels=3
 
 # for freeway
-in_channels=7
+# in_channels=7
+
+# for breakout
+in_channels=4
 
 def run(budget,game,sticky_action):
     env= Environment(game,random_seed=np.random.randint(0,100000),sticky_action_prob=sticky_action)
@@ -34,8 +37,8 @@ def run(budget,game,sticky_action):
         root.n+=1
         
         #start=time.time()
-        option,found=planner.main(root,budget,val_network)
-        #option,found=textbook_mcts.main(root,budget)
+        #option,found=planner.main(root,budget,val_network)
+        option,found=textbook_mcts.main(root,budget)
         #end=time.time()
         
         if found:
@@ -66,6 +69,7 @@ def analyze(iterations,budget,game,sticky):
     print("*"*20)
     print("scores:"+str(scores))
     print("life times: "+str(lifetimes))
+    print("average score: "+str(sum(scores)/len(scores)))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

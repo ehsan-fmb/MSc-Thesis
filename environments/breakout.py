@@ -86,9 +86,11 @@ class Env:
             if(self.ball_x == self.pos):
                 self.ball_dir=[3,2,1,0][self.ball_dir]
                 new_y = self.last_y
+                info=True
             elif(new_x == self.pos):
                 self.ball_dir=[2,3,0,1][self.ball_dir]
                 new_y = self.last_y
+                info=True
             else:
                 self.terminal = True
 

@@ -8,7 +8,9 @@ import re
 
 
 # success settings for asterix: -b 128 -e 100 -s 0.001 kernel size: 3 filters:8 last layer units: 32
-# success settings for asterix: -b 256 -e 100 -s 0.001 kernel size: 3 filters:16 last layer units: 64
+# success settings for freeway: -b 256 -e 100 -s 0.001 kernel size: 3 filters:16 last layer units: 64
+# success settings for breakout: -b 256 -e 100 -s 0.001 kernel size: 3 filters:32 last layer units: 128
+
 
 dSiLU = lambda x: torch.sigmoid(x)*(1+x*(1-torch.sigmoid(x)))
 SiLU = lambda x: x*torch.sigmoid(x)
@@ -36,12 +38,12 @@ class Network(torch.nn.Module):
     def __init__(self, in_channels):
 
         super(Network, self).__init__()
-        self.conv = torch.nn.Conv2d(in_channels, 16, kernel_size=3, stride=1)
+        self.conv = torch.nn.Conv2d(in_channels, 32, kernel_size=3, stride=1)
         def size_linear_unit(size, kernel_size=3, stride=1):
             return (size - (kernel_size - 1) - 1) // stride + 1
-        num_linear_units = size_linear_unit(10) * size_linear_unit(10) * 16
-        self.fc_hidden = torch.nn.Linear(in_features=num_linear_units, out_features=64)
-        self.value = torch.nn.Linear(in_features=64, out_features=1)
+        num_linear_units = size_linear_unit(10) * size_linear_unit(10) * 32
+        self.fc_hidden = torch.nn.Linear(in_features=num_linear_units, out_features=128)
+        self.value = torch.nn.Linear(in_features=128, out_features=1)
 
 
     def forward(self, x):
@@ -63,12 +65,12 @@ def show_dataset(address,name):
         # for asterix dataset
         #seeds[int(data[2]/0.1)]+=1
         
-        # for freeway dataset
+        # for freeway and breakout dataset
         seeds[int(data[1]/0.1)]+=1
     
     plt.plot(seeds,color="magenta")
     plt.savefig("figures/"+name+".png")
-    #plt.show()
+    plt.show()
 
 
 
@@ -87,7 +89,7 @@ def load_dataset(address):
         # X.append(get_state(state))
         # labels.append(torch.tensor(data[2],device=device))
         
-        # for freeway
+        # for freeway and breakout
         state=data[0]
         X.append(get_state(state))
         labels.append(torch.tensor(data[1],device=device))
