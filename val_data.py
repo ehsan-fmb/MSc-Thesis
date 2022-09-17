@@ -76,28 +76,6 @@ def expected_life_freeway(game,steps,reward=0,crash=False):
     
     return death,total
 
-
-def expected_life_breakout(game,steps):
-    
-    if game.terminal:
-        return math.pow(3,steps),math.pow(3,steps)
-    
-    if steps==0:
-        return 0,1 
-
-    death=0
-    total=0
-    for i in range(len(game.action_map)):
-        node=deepcopy(game)
-        node.act(i)
-        d,t=expected_life_breakout(node,steps-1)
-        death=death+d
-        total=total+t
-    
-    return death,total
-
-
-
 def generate_dataset(name,size,steps,trials):
     dataset=[]
     env=Environment(name)
@@ -119,8 +97,6 @@ def generate_dataset(name,size,steps,trials):
                 death,total=expected_life_asterix(game,steps)
             elif name=="freeway":
                 death,total=expected_life_freeway(game,min(game.pos,steps))
-            elif name=="breakout":
-                death,total=expected_life_breakout(game,steps)
             
             labels.append((total-death)/total)
         

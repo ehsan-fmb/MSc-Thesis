@@ -127,23 +127,6 @@ class Env:
         self.last_y = self.ball_y
         self.terminal = False
 
-    # generate random state
-    # ramp_index be used as an input to the network
-    def random_state(self):
-        
-        self.brick_map = np.zeros((10,10))
-        max_height=np.random.randint(1,5)
-        self.brick_map[1:max_height,:] = 1
-        self.ball_dir=np.random.randint(0,4)
-        self.ball_x=np.random.randint(0,10)
-        self.ball_y = np.random.randint(max_height+1,9)
-        self.pos = np.random.randint(0,10)
-        self.strike = False
-        self.last_x = self.ball_x
-        self.last_y = self.ball_y
-        self.terminal = False
-        self.act(0)
-
     # Dimensionality of the game-state (10x10xn)
     def state_shape(self):
         return [10,10,len(self.channels)]

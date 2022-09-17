@@ -38,7 +38,7 @@ class Env:
             'friendly_bullet':4,
             'enemy_bullet':5
         }
-        self.action_map = ['n','l','u','r','d','f']
+        self.action_map = ['n','l','r','f']
         self.ramping = ramping
         if random_state is None:
             self.random = np.random.RandomState()
@@ -48,9 +48,10 @@ class Env:
 
     # Update environment according to agent action
     def act(self, a):
+        info=None
         r = 0
         if(self.terminal):
-            return r, self.terminal
+            return r, self.terminal,info
 
         a = self.action_map[a]
 
@@ -103,11 +104,11 @@ class Env:
         self.alien_move_timer-=1
         self.alien_shot_timer-=1
         if(np.count_nonzero(self.alien_map)==0):
-            if(self.enemy_move_interval>6 and self.ramping):
+            if(self.enemy_move_interval>3 and self.ramping):
                 self.enemy_move_interval-=1
                 self.ramp_index+=1
             self.alien_map[0:4,2:8] = 1
-        return r, self.terminal
+        return r, self.terminal,info
 
     # Find the alien closest to player in manhattan distance, currently used to decide which alien shoots
     def _nearest_alien(self, pos):
@@ -149,6 +150,7 @@ class Env:
         self.ramp_index = 0
         self.shot_timer = 0
         self.terminal = False
+    
 
     # Dimensionality of the game-state (10x10xn)
     def state_shape(self):

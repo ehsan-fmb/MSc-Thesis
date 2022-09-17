@@ -1,19 +1,15 @@
 import argparse
-from ast import arg
 import pickle
 import torch
-import numpy as np
 import matplotlib.pyplot as plt
 import re
+import torch.nn.functional as F
 
 
 # success settings for asterix: -b 128 -e 100 -s 0.001 kernel size: 3 filters:8 last layer units: 32
 # success settings for freeway: -b 256 -e 100 -s 0.001 kernel size: 3 filters:16 last layer units: 64
 # success settings for breakout: -b 256 -e 100 -s 0.001 kernel size: 3 filters:32 last layer units: 128
-
-
-dSiLU = lambda x: torch.sigmoid(x)*(1+x*(1-torch.sigmoid(x)))
-SiLU = lambda x: x*torch.sigmoid(x)
+# success settings for space invaders: -b 256 -e 100 -s 0.001 kernel size: 3 filters:32 last layer units: 128
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -47,8 +43,8 @@ class Network(torch.nn.Module):
 
 
     def forward(self, x):
-        x = SiLU(self.conv(x))
-        x = dSiLU(self.fc_hidden(x.view(x.size(0), -1)))
+        x = F.relu(self.conv(x))
+        x = F.relu(self.fc_hidden(x.view(x.size(0), -1)))
         return self.value(x)
 
 
@@ -59,20 +55,46 @@ def show_dataset(address,name):
     with open(address, "rb") as fp:
         datalist = pickle.load(fp)
     
-    seeds=[0,0,0,0,0,0,0,0,0,0,0]
+    seeds=[]
+    values=[]
+    for i in range(21):
+        seeds.append(i*0.05)
+        values.append(0)
     for data in datalist:
         
         # for asterix dataset
         #seeds[int(data[2]/0.1)]+=1
         
         # for freeway and breakout dataset
-        seeds[int(data[1]/0.1)]+=1
+        values[int(data[1]/0.05)]+=1
     
-    plt.plot(seeds,color="magenta")
+    print(values)
+    plt.plot(seeds,values,color="magenta")
     plt.savefig("figures/"+name+".png")
     plt.show()
 
 
+def preprocess(address):
+    with open(address, "rb") as fp:
+        datalist = pickle.load(fp)
+    
+    states=[]
+    for data in datalist:
+        states.append(data)
+    print(len(states))
+    
+    i=0
+    while i<len(states):
+        j=i+1
+        while j<len(states):
+            if (states[i][0]==states[j][0]).all() and states[i][1]==states[j][1]:
+                del states[j]
+            j+=1
+        i+=1  
+    
+    print(len(states))
+    with open(address, "wb") as fp:
+        pickle.dump(states, fp)
 
 def load_dataset(address):
     with open(address, "rb") as fp:
@@ -89,7 +111,7 @@ def load_dataset(address):
         # X.append(get_state(state))
         # labels.append(torch.tensor(data[2],device=device))
         
-        # for freeway and breakout
+        # for freeway and breakout and space_invaders
         state=data[0]
         X.append(get_state(state))
         labels.append(torch.tensor(data[1],device=device))
@@ -128,5 +150,6 @@ if __name__ == '__main__':
     parser.add_argument('-s','--ssize',required=True)
     args = parser.parse_args()
     #show_dataset("dataset/"+args.name,args.name)
+    #preprocess("dataset/"+args.name)
     dataset=load_dataset("dataset/"+args.name)
     train(dataset,int(args.bsize),int(args.epochs),int(args.channels),float(args.ssize),re.split('_',args.name)[0])
