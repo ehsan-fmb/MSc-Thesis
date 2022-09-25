@@ -48,23 +48,16 @@ def expansion(parent):
     for i in range(len(parent.game.action_map)):
         child = State(deepcopy(parent.game),parent,i)
         # for asterix
-        # r, terminal,_= child.game.act(i)
-        # child.q = child.q+r
-        # if not terminal and not (child.game.player_x == parent.game.player_x and child.game.player_y == parent.game.player_y and i != 0):
-        #     parent.children.append(child)
-
-        
-        # for freeway
-        # r, _,terminal= child.game.act(i)
-        # child.q = child.q+r
-        # if not terminal:
-        #     parent.children.append(child)
-
-        # for space_invadors and breakout
         r, terminal,_= child.game.act(i)
         child.q = child.q+r
-        if not terminal and not (child.game.pos == parent.game.pos and (i ==1 or i==2)):
+        if not terminal and not (child.game.player_x == parent.game.player_x and child.game.player_y == parent.game.player_y and i != 0):
             parent.children.append(child)
+
+        # for breakout
+        # r, terminal,_= child.game.act(i)
+        # child.q = child.q+r
+        # if not terminal and not (child.game.pos == parent.game.pos and (i ==1 or i==2)):
+        #     parent.children.append(child)
 
 
 def selection(root):

@@ -2,7 +2,6 @@ import importlib
 from environment import Environment
 from state import State
 import matplotlib.pyplot as plt
-import numpy as np
 import argparse
 from val_learn import Network
 import textbook_mcts
@@ -11,8 +10,9 @@ import pickle
 import numpy as np
 
 simulation_lengths=[5,6,7,8,9,10,11,12]
+subgoal_threshs=[0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]
 
-def run(budget,game,sticky_action,data_collecting,length,method):
+def run(budget,game,sticky_action,data_collecting,length,thresh,method):
     env= Environment(game,random_seed=np.random.randint(0,100000),sticky_action_prob=sticky_action)
     env.reset()
     planner=importlib.import_module("planner_"+game)
@@ -44,19 +44,25 @@ def run(budget,game,sticky_action,data_collecting,length,method):
         root.n+=1
         
         if method=="planner":
-            option,found=planner.main(root,budget,val_network,data_collecting,length)
+            option,found=planner.main(root,budget,val_network,data_collecting,length,thresh)
         elif method=="mcts":
             option,found=textbook_mcts.main(root,budget,length)
         
         
         if found:
-            r,done=planner.option_running(env,option)
+            r,path_length,done=planner.option_running(env,option)
             score=score+r
-            actions=actions+len(option)
+            actions=actions+path_length
             thinking_time=thinking_time+budget
             
         else:
             r,done,_=env.act(option)
+            # state=env.state()
+            # for i in range(4):
+            #     print(state[:,:,i])
+            #     print()
+            #     print()
+            # print("*"*20)
             score=score+r
             actions=actions+1
             thinking_time=thinking_time+budget
@@ -65,19 +71,19 @@ def run(budget,game,sticky_action,data_collecting,length,method):
     return score,(thinking_time/actions)
 
 def plot(game):
-    with open("results/"+game+"_planner", "rb") as fp:
+    with open("results/"+game+"/"+game+"_planner", "rb") as fp:
             planner = np.array(pickle.load(fp))
-    with open("results/"+game+"_mcts", "rb") as fp:
+    with open("results/"+game+"/"+game+"_mcts", "rb") as fp:
             mcts = np.array(pickle.load(fp))
     
     plt.figure()
     plt.plot(simulation_lengths,planner[:,0],color="green",label="planner")
     plt.plot(simulation_lengths,mcts[:,0],color="red",label="mcts")
-    plt.title("Average Score",fontsize=12)
+    plt.title("Average Score vs Simulation Length",fontsize=12)
     plt.grid(True)
     plt.legend()
-    plt.savefig("figures/"+game+"/average score.png")
-    plt.show()
+    plt.savefig("figures/"+game+"/average score vs simulation length.png")
+    #plt.show()
 
     plt.figure()
     plt.plot(simulation_lengths,planner[:,1],color="green",label="planner")
@@ -86,35 +92,41 @@ def plot(game):
     plt.grid(True)
     plt.legend()
     plt.savefig("figures/"+game+"/average thinking time.png")
-    plt.show()
+    # plt.show()
     
 
 def score_checking(iterations,budget,game,sticky,data_collecting,method):
-    score=0
-    thinking_time=0
-    for _ in range(iterations):
-            s,t=run(budget,game,sticky,data_collecting,8,method)
+    for _ in range(5):
+        score=0
+        thinking_time=0
+        for _ in range(iterations):
+            s,t=run(budget,game,sticky,data_collecting,10,0.6,method)
             score=score+s
             thinking_time=thinking_time+t
-    print("average score: "+str(score/iterations))
-    print("average thinking time: "+str(thinking_time/iterations))
+        print("*"*20)
+        print("average score: "+str(score/iterations))
+        print("average thinking time: "+str(thinking_time/iterations))
 
 
 def analyze(iterations,budget,game,sticky,data_collecting,method):
     results=[]
+    #for subgoal_thresh in subgoal_threshs:
     for length in simulation_lengths:
         print("length: "+str(length))
         score=0
         thinking_time=0
         for _ in range(iterations):
-            s,t=run(budget,game,sticky,data_collecting,length,method)
+            s,t=run(budget,game,sticky,data_collecting,length,0.7,method)
             score=score+s
             thinking_time=thinking_time+t
             print(s)
         
         results.append([score/iterations,(thinking_time/iterations)*1000])
+        print("*"*20)
+        print("average score: "+str(score/iterations))
+        print("average thinking time: "+str(thinking_time/iterations))
         
-    with open("results/"+game+"_"+method, "wb") as fp:
+    with open("results/"+game+"/"+game+"_"+method, "wb") as fp:
         pickle.dump(results, fp)
 
 if __name__ == '__main__':

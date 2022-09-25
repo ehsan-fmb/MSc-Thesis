@@ -4,7 +4,7 @@
 # Tian Tian (ttian@ualberta.ca)                                                                                #
 ################################################################################################################
 import numpy as np
-
+import random
 
 #####################################################################################################################
 # Constants
@@ -64,8 +64,9 @@ class Env:
     # Update environment according to agent action
     def act(self, a):
         r = 0
+        info=None
         if(self.terminal):
-            return r, self.terminal
+            return r, self.terminal,info
             
         a = self.action_map[a]
 
@@ -120,6 +121,7 @@ class Env:
             if(diver[0:2]==[self.sub_x,self.sub_y] and self.diver_count<6):
                 self.divers.remove(diver)
                 self.diver_count+=1
+                info=True
             else:
                 if(diver[3]==0):
                     diver[3]=diver_move_interval
@@ -129,6 +131,7 @@ class Env:
                     elif(diver[0:2]==[self.sub_x,self.sub_y] and self.diver_count<6):
                         self.divers.remove(diver)
                         self.diver_count+=1
+                        info=True
                 else:
                     diver[3]-=1
 
@@ -205,7 +208,8 @@ class Env:
                     self.terminal = True
                 else:
                     r+=self._surface()
-        return r, self.terminal
+
+        return r, self.terminal,info
 
     # Called when player hits surface (top row) if they have no divers, this ends the game, 
     # if they have 6 divers this gives reward proportional to the remaining oxygen and restores full oxygen

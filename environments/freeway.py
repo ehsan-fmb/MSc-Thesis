@@ -144,18 +144,6 @@ class Env:
         self.move_timer = player_speed
         self.terminate_timer = time_limit
         self.terminal = False
-    
-    # generate random state
-    # ramp_index be used as an input to the network
-    def random_state(self):
-        
-        self._randomize_cars(initialize=True,learning=True)
-        self.pos = np.random.randint(1,10)
-        
-        self.move_timer = np.random.randint(0,player_speed+1)
-
-        self.terminate_timer = time_limit
-        self.terminal = False
 
     # Dimensionality of the game-state (10x10xn)
     def state_shape(self):

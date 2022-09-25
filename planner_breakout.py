@@ -15,12 +15,12 @@ score_estimation_length=8
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def main(root, budget,val_network,data_collecting,max_path_length):
+def main(root, budget,val_network,data_collecting,max_path_length,thresh=0):
     expansion(root,val_network,data_collecting)
     returns={}
 
     for i in range(len(root.children)):
-        random_policy(root.children[i],budget,returns,val_network,data_collecting,max_path_length)
+        random_policy(root.children[i],budget,returns,data_collecting,max_path_length)
     
     return selection(returns,root)
 
@@ -109,18 +109,20 @@ def score_estimation(game):
 def option_running(env,option):
     score=0
     done=False
+    actions=0
     
     for action in option:
         if not done:
             r,done,_=env.act(action)
             score=score+r
+            actions+=1
         else:
-            return score,done
+            return score,actions,done
 
-    return score,done
+    return score,actions,done
 
 
-def random_policy(node, budget,returns,network,data_collecting,max_path_length):
+def random_policy(node, budget,returns,data_collecting,max_path_length):
     
     start = time.time()
     max_subgoal_val=0

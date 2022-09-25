@@ -3,9 +3,8 @@ from environment import Environment
 import pickle
 from copy import deepcopy
 import math
-import time
-import numpy as np
 
+# Asterix: we took 6 experiments for each state until 5 steps
 
 def expected_life_asterix(game,steps):
 
@@ -52,29 +51,6 @@ def expected_life_asterix(game,steps):
     
 
     return death,total
-        
-def expected_life_freeway(game,steps,reward=0,crash=False):
-    
-    if crash:
-        return math.pow(3,steps),math.pow(3,steps)
-    
-    if reward==1:
-        return 0,math.pow(3,steps)
-
-    if steps==0:
-        return 0,1
-    
-    death=0
-    total=0
-
-    for i in range(len(game.action_map)):
-        node=deepcopy(game)
-        r,_,c=node.act(i)
-        d,t=expected_life_freeway(node,steps-1,r,c)
-        death=death+d
-        total=total+t
-    
-    return death,total
 
 def generate_dataset(name,size,steps,trials):
     dataset=[]
@@ -84,10 +60,6 @@ def generate_dataset(name,size,steps,trials):
         env.random_reset()
         game=env.get_game()
         
-        # This is for freeway to prune unnecessary states.
-        # if game.state()[game.pos,4,1]:
-        #     continue
-        
         labels=[]
         for _ in range(trials):
             # to get different stochastic beahviors for asterix.
@@ -95,8 +67,6 @@ def generate_dataset(name,size,steps,trials):
 
             if name=="asterix":
                 death,total=expected_life_asterix(game,steps)
-            elif name=="freeway":
-                death,total=expected_life_freeway(game,min(game.pos,steps))
             
             labels.append((total-death)/total)
         

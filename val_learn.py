@@ -6,10 +6,8 @@ import re
 import torch.nn.functional as F
 
 
-# success settings for asterix: -b 128 -e 100 -s 0.001 kernel size: 3 filters:8 last layer units: 32
-# success settings for freeway: -b 256 -e 100 -s 0.001 kernel size: 3 filters:16 last layer units: 64
+# success settings for asterix: -b 512 -e 200 -s 0.001 kernel size: 3 filters:8 last layer units: 128
 # success settings for breakout: -b 256 -e 100 -s 0.001 kernel size: 3 filters:32 last layer units: 128
-# success settings for space invaders: -b 256 -e 100 -s 0.001 kernel size: 3 filters:32 last layer units: 128
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -34,10 +32,10 @@ class Network(torch.nn.Module):
     def __init__(self, in_channels):
 
         super(Network, self).__init__()
-        self.conv = torch.nn.Conv2d(in_channels, 32, kernel_size=3, stride=1)
+        self.conv = torch.nn.Conv2d(in_channels, 8, kernel_size=3, stride=1)
         def size_linear_unit(size, kernel_size=3, stride=1):
             return (size - (kernel_size - 1) - 1) // stride + 1
-        num_linear_units = size_linear_unit(10) * size_linear_unit(10) * 32
+        num_linear_units = size_linear_unit(10) * size_linear_unit(10) * 8
         self.fc_hidden = torch.nn.Linear(in_features=num_linear_units, out_features=128)
         self.value = torch.nn.Linear(in_features=128, out_features=1)
 
@@ -55,17 +53,13 @@ def show_dataset(address,name):
     with open(address, "rb") as fp:
         datalist = pickle.load(fp)
     
+    print(len(datalist))
     seeds=[]
     values=[]
     for i in range(21):
         seeds.append(i*0.05)
         values.append(0)
     for data in datalist:
-        
-        # for asterix dataset
-        #seeds[int(data[2]/0.1)]+=1
-        
-        # for freeway and breakout dataset
         values[int(data[1]/0.05)]+=1
     
     print(values)
@@ -87,14 +81,14 @@ def preprocess(address):
     while i<len(states):
         j=i+1
         while j<len(states):
-            if (states[i][0]==states[j][0]).all() and states[i][1]==states[j][1]:
+            if (states[i][0]==states[j][0]).all():
                 del states[j]
             j+=1
         i+=1  
     
     print(len(states))
-    with open(address, "wb") as fp:
-        pickle.dump(states, fp)
+    # with open(address, "wb") as fp:
+    #     pickle.dump(states, fp)
 
 def load_dataset(address):
     with open(address, "rb") as fp:
@@ -103,15 +97,6 @@ def load_dataset(address):
     X=[]
     labels=[]
     for data in datalist:
-        
-        # for asterix
-        # state=data[0][:,:,0:2]
-        # ramping=np.ones((state.shape[0],state.shape[1]))*data[1]
-        # state=np.dstack((state,ramping))
-        # X.append(get_state(state))
-        # labels.append(torch.tensor(data[2],device=device))
-        
-        # for freeway and breakout and space_invaders
         state=data[0]
         X.append(get_state(state))
         labels.append(torch.tensor(data[1],device=device))
