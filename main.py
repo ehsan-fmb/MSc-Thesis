@@ -24,15 +24,14 @@ def run(budget,game,sticky_action,data_collecting,length,thresh,method):
     # defining network input channels
     if game=="asterix":
         in_channels=3
-    elif game=="freeway":
-        in_channels=7
+    elif game=="seaquest":
+        in_channels=11
     elif game=="breakout":
         in_channels=4
-    elif game=="space_invaders":
-        in_channels=6
     
     val_network=Network(in_channels)
-    val_network.load_state_dict(torch.load("value network/"+game+".pt",map_location=torch.device('cpu')))
+    if method=="planner" and  not data_collecting:
+        val_network.load_state_dict(torch.load("value network/"+game+".pt",map_location=torch.device('cpu')))
     if torch.cuda.is_available():
         val_network.cuda()
     
@@ -79,7 +78,7 @@ def plot(game):
     plt.figure()
     plt.plot(simulation_lengths,planner[:,0],color="green",label="planner")
     plt.plot(simulation_lengths,mcts[:,0],color="red",label="mcts")
-    plt.title("Average Score vs Simulation Length",fontsize=12)
+    plt.title("Average Score vs Simulation length",fontsize=12)
     plt.grid(True)
     plt.legend()
     plt.savefig("figures/"+game+"/average score vs simulation length.png")
@@ -96,16 +95,18 @@ def plot(game):
     
 
 def score_checking(iterations,budget,game,sticky,data_collecting,method):
-    for _ in range(5):
+    for thresh in subgoal_threshs:
+        print("thresh: "+str(thresh))
         score=0
         thinking_time=0
         for _ in range(iterations):
-            s,t=run(budget,game,sticky,data_collecting,10,0.6,method)
+            s,t=run(budget,game,sticky,data_collecting,10,thresh,method)
             score=score+s
             thinking_time=thinking_time+t
-        print("*"*20)
+        
         print("average score: "+str(score/iterations))
         print("average thinking time: "+str(thinking_time/iterations))
+        print("*"*20)
 
 
 def analyze(iterations,budget,game,sticky,data_collecting,method):
@@ -116,10 +117,9 @@ def analyze(iterations,budget,game,sticky,data_collecting,method):
         score=0
         thinking_time=0
         for _ in range(iterations):
-            s,t=run(budget,game,sticky,data_collecting,length,0.7,method)
+            s,t=run(budget,game,sticky,data_collecting,length,0.6,method)
             score=score+s
             thinking_time=thinking_time+t
-            print(s)
         
         results.append([score/iterations,(thinking_time/iterations)*1000])
         print("*"*20)

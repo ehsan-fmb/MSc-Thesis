@@ -7,7 +7,7 @@ from copy import deepcopy
 
 
 exploration_weight=math.sqrt(2)
-
+score_estimation_length=8
 
 
 def main(root,budget,max_simulation_length):
@@ -81,16 +81,27 @@ def best_child(parent,output=False):
             max_val=new_val
     return children[pos]
 
+def score_estimation(game):
+    for _ in range(score_estimation_length):
+        r,done,_=game.act(0)
+        if r!=0 or done:
+            return r
+    return 0
+
 def simulation(cur,max_simulation_length):
     done=False
+    info=None
     path_length=0
     state=deepcopy(cur.game)
     delta=0
-    while (not done) and (path_length<=max_simulation_length):
+    while (not done) and (path_length<=max_simulation_length) and (not info):
         action=random.randint(0,len(state.action_map)-1)
         path_length+=1
         
-        r,done,_=state.act(action)
+        r,done,info=state.act(action)
         delta+=r
+    
+    if info:
+        delta+=score_estimation(state)
     
     return delta

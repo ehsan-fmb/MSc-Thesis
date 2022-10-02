@@ -10,7 +10,7 @@ import numpy as np
 # Constants
 #
 #####################################################################################################################
-ramp_interval = 100
+ramp_interval = 50
 init_spawn_speed = 10
 init_move_interval = 5
 shot_cool_down = 5
@@ -149,26 +149,6 @@ class Env:
         self.ramp_timer = ramp_interval
         self.ramp_index = 0
         self.terminal = False
-    
-    # generate random state
-    # ramp_index be used as an input to the network
-    def random_state(self):
-        self.player_x=np.random.randint(0,10)
-        self.player_y=np.random.randint(1,9)
-        self.entities = [None]*8 
-        number_of_entities=np.random.randint(1,9)
-        for _ in range(number_of_entities):
-            self._spawn_entity()
-
-        self.ramp_index=np.random.randint(0,10)
-        
-        self.move_speed = max(1,init_move_interval-self.ramp_index//2)
-        self.move_timer = np.random.randint(1,self.move_speed+1)
-        
-        self.spawn_speed = max(1,init_spawn_speed-self.ramp_index)
-        self.spawn_timer = np.random.randint(1,self.spawn_speed+1)
-        
-        self.terminal=False
 
     # Dimensionality of the game-state (10x10xn)
     def state_shape(self):

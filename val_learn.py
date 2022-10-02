@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import re
 import torch.nn.functional as F
 
-
-# success settings for asterix: -b 512 -e 200 -s 0.001 kernel size: 3 filters:8 last layer units: 128
+# success settings for seaquest: -b 256 -e 200 -s 0.001 kernel size: 3 filters:16 last layer units: 256
+# success settings for asterix: -b 256 -e 200 -s 0.001 kernel size: 3 filters:8 last layer units: 128
 # success settings for breakout: -b 256 -e 100 -s 0.001 kernel size: 3 filters:32 last layer units: 128
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -32,12 +32,12 @@ class Network(torch.nn.Module):
     def __init__(self, in_channels):
 
         super(Network, self).__init__()
-        self.conv = torch.nn.Conv2d(in_channels, 8, kernel_size=3, stride=1)
+        self.conv = torch.nn.Conv2d(in_channels, 16, kernel_size=3, stride=1)
         def size_linear_unit(size, kernel_size=3, stride=1):
             return (size - (kernel_size - 1) - 1) // stride + 1
-        num_linear_units = size_linear_unit(10) * size_linear_unit(10) * 8
-        self.fc_hidden = torch.nn.Linear(in_features=num_linear_units, out_features=128)
-        self.value = torch.nn.Linear(in_features=128, out_features=1)
+        num_linear_units = size_linear_unit(10) * size_linear_unit(10) * 16
+        self.fc_hidden = torch.nn.Linear(in_features=num_linear_units, out_features=256)
+        self.value = torch.nn.Linear(in_features=256, out_features=1)
 
 
     def forward(self, x):
@@ -65,7 +65,7 @@ def show_dataset(address,name):
     print(values)
     plt.plot(seeds,values,color="magenta")
     plt.savefig("figures/"+name+".png")
-    plt.show()
+    #plt.show()
 
 
 def preprocess(address):
@@ -81,7 +81,7 @@ def preprocess(address):
     while i<len(states):
         j=i+1
         while j<len(states):
-            if (states[i][0]==states[j][0]).all():
+            if (states[i][0]==states[j][0]).all() and states[i][1]==states[j][1]:
                 del states[j]
             j+=1
         i+=1  
@@ -136,5 +136,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     #show_dataset("dataset/"+args.name,args.name)
     #preprocess("dataset/"+args.name)
-    dataset=load_dataset("dataset/"+args.name)
+    dataset=load_dataset("dataset/Seaquest/"+args.name)
     train(dataset,int(args.bsize),int(args.epochs),int(args.channels),float(args.ssize),re.split('_',args.name)[0])
