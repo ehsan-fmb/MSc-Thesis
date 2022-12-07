@@ -8,22 +8,24 @@ import os
 import numpy as np
 import pickle
 import math
+import sys
 from environments.seaquest import shot_cool_down
 
 
 safety_steps=9
-precision=0.005
+precision=0.01
 oxygen_threshold=10
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def main(root, budget,val_network,data_collecting,max_path_length,thresh=0):
+def main(root, budget,val_network,data_collecting,max_path_length,seed,thresh,coefficient):
+    random.seed(seed)
     expansion(root,val_network,data_collecting)
     returns={}
     
     for i in range(len(root.children)):
-        random_policy(root.children[i],budget,val_network,returns,data_collecting,max_path_length,thresh)
+        random_policy(root.children[i],budget,val_network,returns,data_collecting,max_path_length,thresh,coefficient)
     
     return selection(returns,root)
 
@@ -31,13 +33,10 @@ def main(root, budget,val_network,data_collecting,max_path_length,thresh=0):
 def selection(returns,root):
     max_val=-1
     if bool(returns):
-        keys=list(returns.keys())
-        key=keys[np.random.randint(0,len(keys))]
-        pos=returns[key][0]
-        # for key in returns:
-        #     if (max_val<returns[key][1]) or(abs(max_val-returns[key][1])<precision and random.random()>0.5):
-        #         pos=returns[key][0]
-        #         max_val= returns[key][1]
+        for key in returns:
+            if (max_val<returns[key][1]) or(abs(max_val-returns[key][1])<precision and random.random()>0.5):
+                pos=returns[key][0]
+                max_val= returns[key][1]
         return pos,True
     else:        
         for i in range(len(root.children)):
@@ -48,6 +47,7 @@ def selection(returns,root):
         
         if len(root.children)==0:
             # deadend happens
+            #print("deadend happens.")
             return 0,False
         
         return pos,False
@@ -56,6 +56,13 @@ def selection(returns,root):
 def get_state(s):
     return (torch.tensor(s, device=device).permute(2, 0, 1)).unsqueeze(0).float()
 
+def input_generation(board,ramping_index):
+    board[0:9,:,7]=board[9,:,7]
+    ramping=np.zeros((board.shape[0],board.shape[1]))
+    ramping[9,0:int(ramping_index*10//20)]=1
+    state=np.dstack((board,ramping))
+    return state
+
 
 def expansion(parent,network,data_collecting):
     for i in range(len(parent.game.action_map)):
@@ -63,14 +70,14 @@ def expansion(parent,network,data_collecting):
         _, terminal,_= child.game.act(i)
         if not terminal and not (child.game.shot_timer!=shot_cool_down and i == 5):
             parent.children.append(child)
-            input=child.game.state()
+            input=input_generation(child.game.state(),child.game.ramp_index)
 
             if data_collecting:
                 child.q=data_collection(deepcopy(child.game))
             else:
                 with torch.no_grad():
                     child.q=network(get_state(input))
-        
+
         # this is only for gathering data
         if terminal and data_collecting:
             data_collection(deepcopy(child.game))
@@ -79,15 +86,15 @@ def expansion(parent,network,data_collecting):
 def data_collection(game):
     safe,total=safety_value_estimation(game,safety_steps)
     value=safe/total
-    if os.path.exists("dataset/seaquest"):
-        with open("dataset/seaquest", "rb") as fp:
+    if os.path.exists("dataset/seaquest1"):
+        with open("dataset/seaquest1", "rb") as fp:
             datalist = pickle.load(fp)
     else:
         datalist=[]
-    datalist.append([game.state(),game.ramp_index,value])
-    with open("dataset/seaquest", "wb") as fp:
+    datalist.append([game.state(),game.ramp_index,game.oxygen,value])
+    with open("dataset/seaquest1", "wb") as fp:
         pickle.dump(datalist, fp)
-
+    
     return value
 
 
@@ -137,11 +144,11 @@ def option_running(env,option):
     
     for action in option:
         game=deepcopy(env.get_game())
-        r,done_sim,_=game.act(action)
-        if (not done_sim) and not(r==0 and actions==len(option)-1):
+        _,done_sim,_=game.act(action)
+        if (not done_sim):
             r,done,_=env.act(action)
             # state=env.state()
-            # for i in range(4):
+            # for i in range(11):
             #     print(state[:,:,i])
             #     print()
             #     print()
@@ -155,7 +162,7 @@ def option_running(env,option):
 
     return score,actions,done
 
-def random_policy(node, budget,network,returns,data_collecting,max_path_length,thresh):
+def random_policy(node, budget,network,returns,data_collecting,max_path_length,thresh,coefficient):
     
     start = time.time()
     max_subgoal_val=0
@@ -177,18 +184,36 @@ def random_policy(node, budget,network,returns,data_collecting,max_path_length,t
             path_length+=1
             option.append(action)
             r,terminal,info=root.act(action)
-            if info or r!=0 or (root.surface and (not terminal)):
-                input=root.state()
-
+            if (info or r!=0 or root.surface) and (not terminal):
+                input=input_generation(root.state(),root.ramp_index)
                 if data_collecting:
                     new_val=data_collection(deepcopy(root))
                 else:
                     with torch.no_grad():
                         new_val=network(get_state(input))
+                        # if root.sub_y>root.oxygen and not root.surface:
+                            # print(root.oxygen)
+                            # for i in range(11):
+                            #     print(i)
+                            #     print(input[:,:,i])
+                            #     print()
+                            #     print()
+                            # print("*"*20)
+                            # print("diver or enemy: "+str(new_val))
+                            # print(root.oxygen)
+                            # print(root.sub_y)
+                            # print(data_collection(deepcopy(root)))
+                            # print("*"*20)
+                            #new_val=0.1
+                        # if root.surface:
+                        #     print("surfacing: "+str(new_val))
 
-                if new_val>thresh and random.random()>0.5:
-                    max_subgoal_val=new_val
-                    subgoal=option
+                if new_val>thresh:
+                    new_val=coefficient*new_val+(1-coefficient)*r
+                    if new_val>max_subgoal_val or (abs(new_val-max_subgoal_val)<precision and random.random()>0.5):
+                        max_subgoal_val=new_val
+                        subgoal=option
+                
                 novelty=True
         
         # this is only for gathering data

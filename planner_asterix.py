@@ -13,7 +13,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 precision=0.005
 safety_steps=5
 
-def main(root, budget,val_network,data_collecting,max_path_length,subgoal_thresh=0.3):
+def main(root, budget,val_network,data_collecting,max_path_length,seed,subgoal_thresh,coef):
+    random.seed(seed)
     expansion(root,val_network,data_collecting)
     returns={}
     
@@ -39,7 +40,6 @@ def selection(returns,root):
         
         if len(root.children)==0:
             # deadend happens
-            print("deadend!")
             return 0,False
         
         return pos,False

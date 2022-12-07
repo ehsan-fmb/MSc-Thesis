@@ -7,10 +7,11 @@ from copy import deepcopy
 
 
 exploration_weight=math.sqrt(2)
-score_estimation_length=8
+score_estimation_length=10
 
 
-def main(root,budget,max_simulation_length):
+def main(root,budget,max_simulation_length,seed):
+    random.seed(seed)
     start = time.time()
     simulations=0
     while time.time() <= start + budget:
@@ -47,10 +48,17 @@ def backpropagation(root,cur,delta):
 def expansion(parent):
     for i in range(len(parent.game.action_map)):
         child = State(deepcopy(parent.game),parent,i)
+        
         # for asterix
+        # r, terminal,_= child.game.act(i)
+        # child.q = child.q+r
+        # if not terminal and not (child.game.player_x == parent.game.player_x and child.game.player_y == parent.game.player_y and i != 0):
+        #     parent.children.append(child)
+
+        # for seaquest
         r, terminal,_= child.game.act(i)
         child.q = child.q+r
-        if not terminal and not (child.game.player_x == parent.game.player_x and child.game.player_y == parent.game.player_y and i != 0):
+        if not terminal :
             parent.children.append(child)
 
         # for breakout

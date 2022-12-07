@@ -9,18 +9,19 @@ import pickle
 import math
 
 safety_steps=9
-precision=0.005
-score_estimation_length=8
+precision=0.05
+score_estimation_length=10
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def main(root, budget,val_network,data_collecting,max_path_length,thresh=0):
+def main(root, budget,val_network,data_collecting,max_path_length,seed,thresh,coeff):
+    random.seed(seed)
     expansion(root,val_network,data_collecting)
     returns={}
 
     for i in range(len(root.children)):
-        random_policy(root.children[i],budget,returns,data_collecting,max_path_length)
+        random_policy(root.children[i],val_network,budget,returns,data_collecting,max_path_length,thresh,coeff)
     
     return selection(returns,root)
 
@@ -29,14 +30,14 @@ def selection(returns,root):
     max_val=-1
     if bool(returns):
         for key in returns:
-            if (max_val<returns[key][1]) or(abs(max_val-returns[key][1])<precision and random.random()>0.5):
+            if (max_val<returns[key][1]) or(abs(max_val-returns[key][1])<precision):
                 pos=returns[key][0]
                 max_val= returns[key][1]
         return pos,True
     else:        
         for i in range(len(root.children)):
             child=root.children[i]
-            if child.q>max_val or (abs(max_val-child.q)<precision and random.random()>0.5):
+            if child.q>max_val or (abs(max_val-child.q)<0.005 and random.random()>0.5):
                 max_val=child.q
                 pos=child.action_index
         
@@ -99,12 +100,26 @@ def safety_value_estimation(game,steps):
     
     return death,total
 
-def score_estimation(game):
+def score_estimation(game,network,coeff):
+    score=0
+    hit=False
+    input=game.state()
+    bounce_val=network(get_state(input))
     for _ in range(score_estimation_length):
         r,done,_=game.act(0)
-        if r!=0 or done:
-            return r
-    return 0
+        score=score+r
+        if r!=0:
+            input=game.state()
+            safe_val=network(get_state(input))
+            hit=True
+        if done:
+            break
+    
+    if not hit:
+        score=coeff*bounce_val+(1-coeff)*score
+    else:
+        score=coeff*safe_val+(1-coeff)*score
+    return score 
 
 def option_running(env,option):
     score=0
@@ -122,10 +137,9 @@ def option_running(env,option):
     return score,actions,done
 
 
-def random_policy(node, budget,returns,data_collecting,max_path_length):
-    
+def random_policy(node, network ,budget,returns,data_collecting,max_path_length,thresh,coeff):
     start = time.time()
-    max_subgoal_val=0
+    max_subgoal_val=thresh
     subgoal=None
     trajectories=0
     
@@ -146,7 +160,7 @@ def random_policy(node, budget,returns,data_collecting,max_path_length):
             _,terminal,info=root.act(action)
             if info:
                 
-                new_val=score_estimation(root)
+                new_val=score_estimation(root,network,coeff)
                 # input=root.state()
 
                 # if data_collecting:
@@ -155,7 +169,7 @@ def random_policy(node, budget,returns,data_collecting,max_path_length):
                 #     with torch.no_grad():
                 #         new_val=network(get_state(input))
 
-                if new_val>max_subgoal_val or (abs(new_val-max_subgoal_val)<precision and random.random()>0.5):
+                if new_val>max_subgoal_val or (abs(new_val-max_subgoal_val)<precision):
                     max_subgoal_val=new_val
                     subgoal=option
                 novelty=True

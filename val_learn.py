@@ -4,8 +4,9 @@ import torch
 import matplotlib.pyplot as plt
 import re
 import torch.nn.functional as F
+import random
 
-# success settings for seaquest: -b 256 -e 200 -s 0.001 kernel size: 3 filters:16 last layer units: 256
+# success settings for seaquest: -b 256 -e 100 -s 0.001 kernel size: 3 filters:16 two last layers units: 256,32
 # success settings for asterix: -b 256 -e 200 -s 0.001 kernel size: 3 filters:8 last layer units: 128
 # success settings for breakout: -b 256 -e 100 -s 0.001 kernel size: 3 filters:32 last layer units: 128
 
@@ -26,8 +27,6 @@ class Dataset(torch.utils.data.Dataset):
 
         return X, y
 
-
-
 class Network(torch.nn.Module):
     def __init__(self, in_channels):
 
@@ -36,13 +35,15 @@ class Network(torch.nn.Module):
         def size_linear_unit(size, kernel_size=3, stride=1):
             return (size - (kernel_size - 1) - 1) // stride + 1
         num_linear_units = size_linear_unit(10) * size_linear_unit(10) * 16
-        self.fc_hidden = torch.nn.Linear(in_features=num_linear_units, out_features=256)
-        self.value = torch.nn.Linear(in_features=256, out_features=1)
+        self.fc_hidden1= torch.nn.Linear(in_features=num_linear_units, out_features=256)
+        self.fc_hidden2 = torch.nn.Linear(in_features=256, out_features=32)
+        self.value = torch.nn.Linear(in_features=32, out_features=1)
 
 
     def forward(self, x):
         x = F.relu(self.conv(x))
-        x = F.relu(self.fc_hidden(x.view(x.size(0), -1)))
+        x = F.relu(self.fc_hidden1(x.view(x.size(0), -1)))
+        x = F.relu(self.fc_hidden2(x))
         return self.value(x)
 
 
@@ -90,10 +91,13 @@ def preprocess(address):
     # with open(address, "wb") as fp:
     #     pickle.dump(states, fp)
 
+
 def load_dataset(address):
     with open(address, "rb") as fp:
         datalist = pickle.load(fp)
     
+    print(len(datalist))
+
     X=[]
     labels=[]
     for data in datalist:
@@ -119,11 +123,9 @@ def train(dataset,batch_size,max_epochs,channels,step_size,game):
             loss=measure(yhat,targets)
             loss.backward()
             optimizer.step()
-            print(loss)
+            print("loss: "+str(loss))
     
     torch.save(network.state_dict(), "value network/"+game+".pt")
-
-
 
 
 if __name__ == '__main__':
@@ -136,5 +138,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     #show_dataset("dataset/"+args.name,args.name)
     #preprocess("dataset/"+args.name)
-    dataset=load_dataset("dataset/Seaquest/"+args.name)
+    dataset=load_dataset("dataset/Breakout/"+args.name)
     train(dataset,int(args.bsize),int(args.epochs),int(args.channels),float(args.ssize),re.split('_',args.name)[0])

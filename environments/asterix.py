@@ -10,7 +10,7 @@ import numpy as np
 # Constants
 #
 #####################################################################################################################
-ramp_interval = 50
+ramp_interval = 100
 init_spawn_speed = 10
 init_move_interval = 5
 shot_cool_down = 5
